@@ -1,0 +1,93 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ssh-jump
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ssh-jump
+  template:
+    metadata:
+      labels:
+        app: ssh-jump
+    spec:
+      containers:
+        - name: ssh-jump
+          image: docker.io/fl64/ssh-jumphost:0.2.0
+          imagePullPolicy: Always
+          resources:
+            limits:
+              cpu: "150m"
+              memory: "50Mi"
+            requests:
+              cpu: "100m"
+              memory: "50Mi"
+          ports:
+            - name: ssh
+              containerPort: 2222
+            - name: ws
+              containerPort: 8080
+          env:
+            - name: SSH_KEY
+              value: "ssh-ed25519 V2hhdCBhcmUgeW91IGxvb2tpbmcgYXQ/Cg== cloud"
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ssh-jump
+spec:
+  type: NodePort
+  selector:
+    app: ssh-jump
+  ports:
+    - name: ssh
+      protocol: TCP
+      port: 2222
+      targetPort: 2222
+    - name: ws
+      protocol: TCP
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ws
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: ws.example.com
+      http:
+        paths:
+          - backend:
+              service:
+                name: jump-host
+                port:
+                  number: 8080
+            path: /
+            pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - ws.example.com
+    secretName: ws-tls
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: ws-tls
+spec:
+  certificateOwnerRef: false
+  dnsNames:
+  - ws.example.com
+  issuerRef:
+    kind: ClusterIssuer
+    name: letsencrypt
+  secretName: ws-tls

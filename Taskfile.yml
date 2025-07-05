@@ -1,0 +1,25 @@
+# https://taskfile.dev
+
+version: '3'
+
+vars:
+  ver: v0.2.0
+
+tasks:
+  build:
+    cmds:
+      - docker build -t fl64/ssh-jumphost:{{ .ver }} .
+
+  push:
+    deps:
+      - build
+    cmds:
+    - docker push fl64/ssh-jumphost:{{ .ver }}
+
+  deploy:
+    cmds:
+    - kubectl apply -f deploy.yaml
+
+  undeploy:
+    cmds:
+    - kubectl delete -f deploy.yaml

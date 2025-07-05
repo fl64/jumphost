@@ -1,0 +1,14 @@
+Host jumphost
+	ForwardAgent yes
+	Hostname 127.0.0.1
+  StrictHostKeyChecking no
+  UserKnownHostsFile /dev/null
+	Port 2222
+	User user
+	ProxyCommand wstunnel client --log-lvl=off -L stdio://%h:%p wss://ws.myns.pt.dvp.flant.dev:443
+Host vm
+	ForwardAgent yes
+	Hostname 10.66.10.1
+	Port 22
+	User cloud
+	ProxyJump jumphost
